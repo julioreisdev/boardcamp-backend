@@ -135,3 +135,78 @@ export async function deleteRental(req, res) {
     return res.status(500).send(error);
   }
 }
+
+export async function getRentals(req, res) {
+  const { customerId, gameId } = req.query;
+  let query = `
+    SELECT rentals.*, customers.name as "customerNAME", 
+    customers.id as "customerID", games.id as "gameID", games.name as "gameNAME",
+    categories.id as "categoryID", categories.name as "categoryNAME"
+    FROM customers
+    JOIN rentals ON rentals."customerId" = customers.id
+    JOIN games ON games.id = rentals."gameId"
+    JOIN categories ON games."categoryId" = categories.id
+`;
+  if (customerId) {
+    query = `
+      SELECT rentals.*, customers.name as "customerNAME", 
+      customers.id as "customerID", games.id as "gameID", games.name as "gameNAME",
+      categories.id as "categoryID", categories.name as "categoryNAME"
+      FROM customers
+      JOIN rentals ON rentals."customerId" = customers.id
+      JOIN games ON games.id = rentals."gameId"
+      JOIN categories ON games."categoryId" = categories.id WHERE customers.id = $1
+  `
+  } 
+  else if (gameId) {
+    query = `
+      SELECT rentals.*, customers.name as "customerNAME", 
+      customers.id as "customerID", games.id as "gameID", games.name as "gameNAME",
+      categories.id as "categoryID", categories.name as "categoryNAME"
+      FROM customers
+      JOIN rentals ON rentals."customerId" = customers.id
+      JOIN games ON games.id = rentals."gameId"
+      JOIN categories ON games."categoryId" = categories.id WHERE games.id = $1
+  `
+  }
+  const data = [];
+  try {
+    let dataRentals = '';
+    if (customerId) {
+      const {rows: dataRentalsT} = await connectionpg.query(query, [customerId]);
+      dataRentals = dataRentalsT;
+    }
+    else if (gameId) {
+      const {rows: dataRentalsT} = await connectionpg.query(query, [gameId]);
+      dataRentals = dataRentalsT;
+    } else {
+      const {rows: dataRentalsT} = await connectionpg.query(query);
+      dataRentals = dataRentalsT;
+    }
+    for (let dr of dataRentals) {
+      data.push({
+        id: dr.id,
+        customerId: dr.customerId,
+        gameId: dr.gameId,
+        rentDate: dr.rentDate,
+        daysRented: dr.daysRented,
+        returnDate: dr.returnDate,
+        originalPrice: dr.originalPrice,
+        delayFee: dr.delayFee,
+        customer: {
+          id: dr.customerID,
+          name: dr.customerNAME
+        },
+        game: {
+          id: dr.gameID,
+          name: dr.gameNAME,
+          categoryId: dr.categoryID,
+          categoryName: dr.categoryNAME
+        }
+      });
+    }
+    return res.send(data);
+  } catch (error) {
+    return res.status(500).send(error);
+  }
+}
