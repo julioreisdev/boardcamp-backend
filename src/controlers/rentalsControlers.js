@@ -109,7 +109,28 @@ export async function returnRental(req, res) {
     `,
       [dataAtual, delayFee, id]
     );
-    return res.send(rental);
+    return res.sendStatus(200);
+  } catch (error) {
+    return res.status(500).send(error);
+  }
+}
+
+export async function deleteRental(req, res) {
+  const { id } = req.params;
+  try {
+    const {rows: rental} = await connectionpg.query(`
+      SELECT * FROM rentals WHERE id = $1
+    `, [id]);
+    if (rental.length === 0) {
+      return res.sendStatus(404);
+    }
+    if (rental[0].returnDate === null) {
+      return res.sendStatus(400);
+    }
+    await connectionpg.query(`
+      DELETE FROM rentals WHERE id = $1
+    `, [id]);
+    return res.sendStatus(200);
   } catch (error) {
     return res.status(500).send(error);
   }
