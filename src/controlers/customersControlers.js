@@ -63,7 +63,7 @@ export async function getCustomer(req, res) {
     if (user.length === 0) {
       return res.sendStatus(404);
     }
-    return res.send(user);
+    return res.send(user[0]);
   } catch (error) {
     return res.status(500).send(error);
   }
